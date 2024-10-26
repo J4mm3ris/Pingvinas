@@ -1,0 +1,7 @@
+Drone notes:
+
+	ESC 
+		stop_speed  =  1130
+		min_speed_moving  =  1170
+		inkrementai +20 padidina greiti tik :/
+		max_speed  =  bent 1500 bet sjp tai tikrai geras klausimas :P
