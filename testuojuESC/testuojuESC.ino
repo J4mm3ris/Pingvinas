@@ -3,59 +3,30 @@
 #include <ESC.h>
 String readString;
 int pp=0, n=0;
-ESC myESC (18, 1000, 2000, 500); 
+#define pin 26
 
-#define MIN_SPEED 1080 // speed just slow enough to turn motor off
-#define MAX_SPEED 1390 // speed where my motor drew 3.6 amps at 12v.
+ESC myESC (pin, 1000, 2000, 500); 
+
+#define MIN_SPEED 1030
+#define MAX_SPEED 1600
 
 void setup() {
   Serial.begin(115200);
-  pinMode(18, OUTPUT);
+  pinMode(pin, OUTPUT);
   myESC.arm();
   delay(5000);
 }
 
-void loop() {
-
-
-  // for (int i=150; i<450; i++){ // run speed from 840 to 1190
-  //   myESC.speed(MIN_SPEED-200+i); // motor starts up about half way through loop
-  //   delay(10);
-  // }
-  // delay(3000);
-  // myESC.speed(0);
-  // myESC.arm();
-  // delay(3000);
-  // myESC.speed(MIN_SPEED);
-  // delay(3000);
-  // myESC.speed(MAX_SPEED);
-  // delay(5000);
-  // myESC.speed(0);
-  // myESC.arm();
-  // delay(3000);
-
-  // myESC.speed(1170);
-  // delay(3000);
-  // myESC.speed(1130);
-  // delay(3000);
-
-  // for(int i=0; i<200; i++){
-  //   myESC.speed(MIN_SPEED+i);
-  //   Serial.print("Speed: ");
-  //   Serial.println(MIN_SPEED+i);
-  //   delay(1000);
-    
-  // }
-
+void loop(){
 
   while (Serial.available()) {
-    char c = Serial.read();  //gets one byte from serial buffer
-    readString += c; //makes the String readString
-    delay(2);  //slow looping to allow buffer to fill with next character
+    char c = Serial.read(); 
+    readString += c;
+    delay(2);
   }
 
   if (readString.length() >0) {
-    n = readString.toInt();  //convert readString into a number
+    n = readString.toInt();
     readString="";
 
     if(n>=0 && n<=2000){

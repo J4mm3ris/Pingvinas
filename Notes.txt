@@ -5,3 +5,8 @@ Drone notes:
 		min_speed_moving  =  1170
 		inkrementai +20 padidina greiti tik :/
 		max_speed  =  bent 1500 bet sjp tai tikrai geras klausimas :P
+		
+		#define FRpin 25
+		#define BRpin 26
+		#define FLpin 32
+		#define BLpin 33
