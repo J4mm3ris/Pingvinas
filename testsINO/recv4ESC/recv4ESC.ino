@@ -43,7 +43,39 @@ ESC arr[]= {FRP, FLP, BRP, BLP};
 unsigned long timeReceived, timeUpdated;
 
 
+String splitDat(String msg, char delim, int theOne){
+  String ret=""; 
+  int counter=0;
+  String list[25];
+  for(int i=0; i<25; i++){list[i]="";}
+  for(int i=0; i<msg.length(); i++){
+    if(msg[i]!=delim){
+      list[counter]+=msg[i];
+    }
+    else{
+      counter++;
+    }
+  }
+  return list[theOne];
+}
 
+String splitSum(String msg, char delim){
+  String ret=""; bool found=0;
+  for(int i=0; i<msg.length(); i++){
+    if(found){ret+=msg[i];}
+    if(msg[i]==delim){found=1;}
+  }
+  return ret;
+}
+
+String genSum(String s) //generates checksum? kinda... bad... nvm..
+{
+  int c=0;
+  for(char i:s){
+    c+=i;
+  }
+  return String(c);
+}
 
 void setup() {
   Serial.begin(115200);
@@ -81,23 +113,35 @@ void data_code( void * pvParameters ){
   while(1){
     int packetSize = LoRa.parsePacket();
     if (packetSize) {
+      //reads data
       while (LoRa.available()) {
-        datata = LoRa.readString();
-        timeReceived=millis();
-        delay(1); //kad kitas branduolys spetu updatint datata2
+        datata2 = LoRa.readString();
         Serial.println(datata2); 
         sigStr=LoRa.packetRssi();
       }
+
+      //tests checksum
+      String sum=splitDat(datata2, ';', 1), returnMsg="", dat=splitDat(datata2, ';', 0);
+      if(genSum(dat)==sum){
+        returnMsg+="Checksum OK, '";
+        datata=dat;
+      }else{
+        returnMsg+="Checksum badd, '";
+      }
+
+      returnMsg+=String(dat);
+      
+
+      //returns sumthing
       LoRa.beginPacket();
-      LoRa.print("confirmed: '");
-      LoRa.print(datata2);
-      LoRa.print("', tX strength = ");
+      LoRa.print(returnMsg);
+      LoRa.print("', signal strength = ");
       LoRa.print(sigStr);
       LoRa.print("dBm. ");
       LoRa.endPacket();
       Serial.println("Confirmed received...");
     }
-    delay(1); //time to reset watchdog
+    delay(1); //time to reset watchdogg
   }
 }
 
@@ -107,23 +151,18 @@ void rotors_code( void * pvParameters ){
   while(1){
     int watchDogKiller2=0;
     if (datata.length() > 0) {
-      datata2=datata;
       n = datata.toInt();
       datata="";
 
-      if(n>=0 && n<=2000){
+      if(n>=0 && n<=MAX_SPEED){
         Serial.print("Setting servo speed to ");
         Serial.print(n);
-        Serial.print(" .. . . .. ");
+        Serial.println(" .. . . .. ");
         for(int i=0; i<4; i++){
           arr[i].speed(n);
         }
       }
-      timeUpdated=millis();
-      Serial.print("From the moment it was received, it took ");
-      Serial.print(timeUpdated-timeReceived);
-      Serial.println("ms. ");
     }
-    delay(1); //time to reset watchdog
+    delay(1); //time to reset watchdogg
   }
 }

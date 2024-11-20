@@ -9,6 +9,16 @@ int n;
 String readString="";
 unsigned long timeReceived, timeSent;
 
+
+String genSum(String s) //generates checksum? kinda... bad... nvm..
+{
+  int c=0;
+  for(char i:s){
+    c+=i;
+  }
+  return String(c);
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -46,12 +56,15 @@ void loop() {
   }
 
   if (readString.length() > 0) {
-    n = readString.toInt();
+    readString.trim();
+    String sum = genSum(readString);
+    Serial.println("ShwasdSUM = "+sum);
+    readString+=";"+sum;
     LoRa.beginPacket();
-    LoRa.print(n);
+    LoRa.print(readString);
     LoRa.endPacket();
-    readString="";
     Serial.println("Message sent");
+    readString="";
     timeSent=millis();
   }
 }
