@@ -7,6 +7,7 @@
 #define dio0 2
 int n;
 String readString="";
+unsigned long timeReceived, timeSent;
 
 void setup() {
   Serial.begin(115200);
@@ -37,6 +38,11 @@ void loop() {
       Serial.print("Received: ");
       Serial.println(LoRaData); 
     }
+    timeReceived=millis();
+    Serial.print("This message bounced back and forth in ");
+    Serial.print(timeReceived-timeSent);
+    Serial.println(" ms.");
+    Serial.println("");
   }
 
   if (readString.length() > 0) {
@@ -45,5 +51,7 @@ void loop() {
     LoRa.print(n);
     LoRa.endPacket();
     readString="";
+    Serial.println("Message sent");
+    timeSent=millis();
   }
 }
