@@ -10,6 +10,22 @@ String readString="";
 unsigned long timeReceived, timeSent;
 
 
+String splitDat(String msg, char delim, int theOne){  //returns specified part of message, that was separated by delimitors :P
+  String ret=""; 
+  int counter=0;
+  String list[25];
+  for(int i=0; i<25; i++){list[i]="";}
+  for(int i=0; i<msg.length(); i++){
+    if(msg[i]!=delim){
+      list[counter]+=msg[i];
+    }
+    else{
+      counter++;
+    }
+  }
+  return list[theOne];
+}
+
 String genSum(String s) //generates checksum? kinda... bad... nvm..
 {
   int c=0;
@@ -47,6 +63,13 @@ void loop() {
       String LoRaData = LoRa.readString();
       Serial.print("Received: ");
       Serial.println(LoRaData); 
+      String dat = splitDat(LoRaData, ';', 0), sum=splitDat(LoRaData, ';', 1);
+      if(sum==genSum(dat)){
+        Serial.println("Checksum is alright... ");
+      }
+      else{
+        Serial.println("Checksum is nicht gut... ");
+      }
     }
     timeReceived=millis();
     Serial.print("This message bounced back and forth in ");
