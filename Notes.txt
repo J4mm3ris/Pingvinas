@@ -1,5 +1,9 @@
 notes:
-	ESC 
+	PID:
+		pitch/roll values :  Kp=0.25, Ki=0, Kd=0.05
+		yaw values :
+	
+	ESC	@ 3S Li-ion 
 		stop_speed  =  1130
 		min_speed_start_moving  =  1170
 		max_speed  = 1600+ :P    			//1600 - 12v@≈100W
@@ -9,3 +13,18 @@ notes:
 		#define FLpin 32
 		#define BLpin 33
 		
+
+
+Serial comms:						:  	
+1.
+	'{INT number}'  				=   sets motor speed to specified value :O
+2.	
+	'$;{dbl1};{dbl2};{dbl3}'        =	sets Kp, Ki and Kd values divided by 1000 respectively, sets motor speed to 0;
+eg "$;920;25;30"
+
+3.
+	'MAYDAY MAYDAY MAYDAY'   		=	take a wild guess :P
+
+	
+	
+	
