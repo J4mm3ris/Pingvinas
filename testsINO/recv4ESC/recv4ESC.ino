@@ -25,7 +25,7 @@ Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29, &Wire);
 
 #define MIN_SPEED 1130
 #define MIN_MVSPEED 1160
-#define MAX_SPEED 1200
+int MAX_SPEED = 1260;
 
 #define FRpin 25
 #define BRpin 26
@@ -35,8 +35,12 @@ Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29, &Wire);
 
 //PID vars
 
-double Kp=1, Ki=0.2, Kd=0.8, now=1, dt=1, last_time=1, integral=1, prev=1; //*,*,*, dabartinis laikas, delta-laikas, laikas praeitam loope, ., . - abu taskus reiks part of array padaryt...
-double target;
+double XKp=1, XKi=0.2, XKd=0.8, now=1, dt=1, last_time=1, integralX=1, prevX=1; //*,*,*, dabartinis laikas, delta-laikas, laikas praeitam loope, ., . - abu taskus reiks part of array padaryt...
+double Kp=0.92, Ki=0.025, Kd=0.03; //*,*,*, ., . - abu taskus reiks part of array padaryt...
+double targetX, targetY=0, targetZ=0, integralY=1, prevY=1, integralZ=1, prevZ=1;
+
+int PDD = 300; //skaicius is kurio dalina pid rezultata, kuo mazesnis, tuo stipriau pid rezultatas impactins motorus...
+
 
 //multicore tasks
 TaskHandle_t rotors;
@@ -118,11 +122,11 @@ void setup() {
   }
   bno.getEvent(&orinet, Adafruit_BNO055::VECTOR_EULER);
   x = orinet.orientation.x;
-  target=x;
+  targetX=x;
   t1=millis();
   //begin tasks on multiple cores :P
-  xTaskCreatePinnedToCore(rotors_code, "rotors", 10000, NULL, 1, &rotors, 0);        
-  xTaskCreatePinnedToCore(data_code, "data", 3000, NULL, 1, &data, 1);        
+  xTaskCreatePinnedToCore(rotors_code, "rotors", 9000, NULL, 1, &rotors, 0);        
+  xTaskCreatePinnedToCore(data_code, "data", 4000, NULL, 1, &data, 1);        
 }
 
 void sendMSG(String msg){
@@ -172,17 +176,37 @@ void data_code( void * pvParameters ){
 }
 
 
-double PID(double err){
+double PIDX(double err){
   double prop=err;
-  integral +=err*dt;
-  double derivative = (err-prev)/dt;
-  prev=err;
-  double out=(Kp*prop)+(Ki*integral)+(Kd*derivative);
-  //if(out>0){out-=180;}else{out+=180;}
+  integralX +=err*dt;
+  double derivative = (err-prevX)/dt;
+  prevX=err;
+  double out=(XKp*prop)+(XKi*integralX)+(XKd*derivative);
 
-  //if()
   if(out>150){out=150;}
   if(out<-150){out=-150;}
+  return out;
+}
+
+double PIDY(double err){
+  double prop=err;
+  integralY +=err*dt;
+  double derivative = (err-prevY)/dt;
+  prevY=err;
+  double out=(Kp*prop)+(Ki*integralY)+(Kd*derivative);
+  //if(out>0){out-=180;}else{out+=180;}
+
+  // if(out>150){out=150;}
+  // if(out<-150){out=-150;}
+  return out;
+}
+
+double PIDZ(double err){
+  double prop=err;
+  integralZ +=err*dt;
+  double derivative = (err-prevZ)/dt;
+  prevZ=err;
+  double out=(Kp*prop)+(Ki*integralZ)+(Kd*derivative);
   return out;
 }
 
@@ -208,29 +232,61 @@ void rotors_code( void * pvParameters ){
     z = orinet.orientation.z; // jei 0> lenkias atgal, 0< lenkias i prieki
     t2=millis();
 
-    //PID cia bus
+    //pid time track
     now=millis();
     dt=(now-last_time)/1000;
     last_time=now;
-    double actual = x;
-    interpolX(actual, target);
-    double error = target-actual;
-    if(abs(target-actual)<1){error=0;}
-    if(n>MIN_SPEED){
-      double piid=PID(error);
+
+    //PID X cia bus
     
-      if(piid>0){
-        corr[0]=1+abs(piid)/300; corr[3]=1+abs(piid)/300; corr[1]=1-abs(piid)/300; corr[2]=1-abs(piid)/300; 
+    double actualX = x;
+    interpolX(actualX, targetX);
+    double errorX = targetX-actualX;
+    if(abs(targetX-actualX)<1){errorX=0;}
+
+    //Y, Z PID:
+
+    double actualY = y;
+    double errorY = targetY-actualY;
+    //if(abs(targetY-actualY)<2){errorY=0;}
+
+    double actualZ = z;
+    double errorZ = targetZ-actualZ;
+    //if(abs(targetZ-actualZ)<2){errorZ=0;}
+
+
+
+    if(n>MIN_SPEED){
+      double piidX=PIDX(errorX);
+      double piidY=PIDY(errorY);
+      double piidZ=PIDZ(errorZ);
+      for(int i=0; i<4; i++){
+        corr[i]=1;
       }
-      else if(piid<0){
-        corr[0]=1-abs(piid)/300; corr[3]=1-abs(piid)/300; corr[1]=1+abs(piid)/300; corr[2]=1+abs(piid)/300; 
+      // if(piidX>0){
+      //   corr[0]=1+abs(piidX)/PDD; corr[3]=1+abs(piidX)/PDD; corr[1]=1-abs(piidX)/PDD; corr[2]=1-abs(piidX)/PDD; 
+      // }
+      // else if(piidX<0){
+      //   corr[0]=1-abs(piidX)/PDD; corr[3]=1-abs(piidX)/PDD; corr[1]=1+abs(piidX)/PDD; corr[2]=1+abs(piidX)/PDD; 
+      // }
+
+      corr[0]+=piidY/PDD; corr[2]+=piidY/PDD; corr[1]-=piidY/PDD; corr[3]-=piidY/PDD;
+
+      corr[0]-=piidZ/PDD; corr[1]-=piidZ/PDD; corr[2]+=piidZ/PDD; corr[3]+=piidZ/PDD;
+
+
+      for(int i=0; i<4; i++){
+        //corr[i]/=1;
+        if(corr[i]<0){corr[i]=0;}
       }
+
+
     }
-    //Serial.println(String(PID(error)) + " : "+String(x-180)+" target = "+String(target));
+
     if(n>MIN_SPEED){
     for(int i=0; i<4; i++){
       if(n*corr[i]<MAX_SPEED){
-        if(MIN_MVSPEED<n*corr[i]){
+        if(0<n*corr[i]){
           arr[i].speed(n*corr[i]);
         }
         else{
@@ -247,7 +303,7 @@ void rotors_code( void * pvParameters ){
       n = datata.toInt();
       datata="";
 
-      if(n>=0 && n<=MAX_SPEED){
+      if(n>=0){
         Serial.print("Setting servo speed to ");
         Serial.print(n);
         Serial.println(" .. . . .. ");
@@ -256,7 +312,7 @@ void rotors_code( void * pvParameters ){
             arr[i].speed(n);
           }
           else if(n*corr[i]<MAX_SPEED){
-            if(MIN_MVSPEED<n*corr[i]){
+            if(0<n*corr[i]){
               arr[i].speed(n*corr[i]);
             }
             else{
