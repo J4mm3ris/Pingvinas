@@ -1,43 +1,26 @@
-var http = require('http');
-var fs = require('fs');
-var index = fs.readFileSync( 'pingvinas/src/app/page.js');
+const SerialPort = require('serialport');
+const Readline = require('@serialport/parser-readline');
 
-var SerialPort = require('serialport');
-const parsers = SerialPort.parsers;
+// Replace with your Arduino's port
+const port = new SerialPort('/dev/ttyUSB0', { baudRate: 9600 });
+const parser = port.pipe(new Readline({ delimiter: '\n' }));
 
-const parser = new parsers.Readline({
-    delimiter: '\r\n'
+// Open Port
+port.on('open', () => {
+  console.log('Serial Port Open');
 });
 
-var port = new SerialPort('COM3',{ 
-    baudRate: 9600,
-    dataBits: 8,
-    parity: 'none',
-    stopBits: 1,
-    flowControl: false
+// Read data from Arduino
+parser.on('data', (data) => {
+  console.log(`Arduino says: ${data}`);
 });
 
-port.pipe(parser);
+// Function to send data to Arduino
+const sendToArduino = (message) => {
+  port.write(message + '\n');
+};
 
-var app = http.createServer(function(req, res) {
-    res.writeHead(200, {'Content-Type': 'text/html'});
-    res.end(index);
-});
-
-var io = require('socket.io').listen(app);
-
-io.on('connection', function(socket) {
-    
-    console.log('Node is listening to port');
-    
-});
-
-parser.on('data', function(data) {
-    
-    console.log('Received data from port: ' + data);
-    
-    io.emit('data', data);
-    
-});
-
-app.listen(3000);
+// Example of sending a message
+setTimeout(() => {
+  sendToArduino('Hello Arduino!');
+}, 2000);
