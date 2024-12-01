@@ -311,9 +311,9 @@ void rotors_code( void * pvParameters ){
         corr[0]=1-abs(piidX)/PDD; corr[3]=1-abs(piidX)/PDD; corr[1]=1+abs(piidX)/PDD; corr[2]=1+abs(piidX)/PDD; 
       }
 
-      corr[0]+=piidY/PDD; corr[2]+=piidY/PDD; corr[1]-=piidY/PDD; corr[3]-=piidY/PDD;
+      corr[0]-=piidY/PDD; corr[2]-=piidY/PDD; corr[1]+=piidY/PDD; corr[3]+=piidY/PDD;
 
-      corr[0]-=piidZ/PDD; corr[1]-=piidZ/PDD; corr[2]+=piidZ/PDD; corr[3]+=piidZ/PDD;
+      corr[0]+=piidZ/PDD; corr[1]+=piidZ/PDD; corr[2]-=piidZ/PDD; corr[3]-=piidZ/PDD;
 
 
       for(int i=0; i<4; i++){
