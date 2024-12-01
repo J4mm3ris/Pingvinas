@@ -7,4 +7,5 @@ Shit! here we go again.
 
 
 ## Design process
-![design](https://github.com/user-attachments/assets/1bcd3829-42ec-4635-8fdd-a4862c01d4d4)
+
+![bandom](https://github.com/user-attachments/assets/0ff3e813-5a95-4c1f-922f-2943904b4b5c)
