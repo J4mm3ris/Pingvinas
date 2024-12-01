@@ -1,10 +1,9 @@
 
 ![text](https://github.com/J4mm3ris/Pingvinas/blob/main/graphics/text.png)
 
-Shit! here we go again.
+## Shit! here we go again.
 
-
-
+It might fly, it might not.
 
 ## Design process
 
