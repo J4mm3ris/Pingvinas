@@ -8,13 +8,17 @@ It might fly, *it might not.*
 ## Serial Commands
 
 ### Remote
-
->**`MAYDAY MAYDAY MAYDAY`** - kills power to motors, requires manual reset,\
->**`$YAW;{Kp};{Ki};{Kd}`** - set Kp, Ki, Kd values (multiplied by 1000) for YAW axis,\
->**`$PR;{Kp};{Ki};{Kd}`** - set Kp, Ki, Kd values (multiplied by 1000) for PITCH and ROLL axes,\
->**`&;{MotorSpeed};{TargetAngle(pitch)};{TargetAngle(roll)};{TargetAngle(yaw)}`** - set motor speed (MIN - 1160, MAX - TBD), target angle in degrees,\
->**`^;{Speed}`** - set hover speed (resets angles to 0),
->**`%D`** - dump most important variables;
+>#### Emergency
+>>**`MAYDAY MAYDAY MAYDAY`** - kills power to motors, requires manual reset,
+>#### Modify core values
+>>**`$YAW;{Kp};{Ki};{Kd}`** - set Kp, Ki, Kd values (multiplied by 1000) for YAW axis,\
+>>**`$PR;{Kp};{Ki};{Kd}`** - set Kp, Ki, Kd values (multiplied by 1000) for PITCH and ROLL axes,
+>#### Simple flight
+>>**`&;{MotorSpeed};{TargetAngle(pitch)};{TargetAngle(roll)};{TargetAngle(yaw)}`** - set motor speed (MIN - 1160, MAX - TBD), target angle in degrees,
+>#### Hover
+>>**`^;{Speed}`** - set hover speed (resets angles to 0),
+>#### Debug
+>>**`%D`** - dump most important variables;
 
 ### Local
 
