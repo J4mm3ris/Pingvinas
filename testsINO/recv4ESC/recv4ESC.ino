@@ -1,9 +1,9 @@
 /*
 TODO:
-  1.fix terrific splitDat();
-  2.fix even more terrific getDat();
+  DONE 1.fix terrific splitDat();
+  DONE 2.fix even more terrific getDat();
   3.fix yaw interpolation 'n shit...
-  4.find joy in life;
+  LOST CAUSE 4.find joy in life;
 */
 
 //needed for motors
@@ -19,6 +19,7 @@ TODO:
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
+
 
 //BNO055 setup
 uint16_t BNO055_SAMPLERATE_DELAY_MS = 50;
@@ -42,7 +43,7 @@ Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x29, &Wire);
 //PID vars
 double XKp=0, XKi=0, XKd=0;                 //proportional, integral and derrivative gain for yaw
 double Kp=0.25, Ki=0.00, Kd=0.05;             //proportional, integral and derrivative gain for pitch and roll
-double targetX, targetY=0, targetZ=0,         //target values for PID
+double targetX=0, targetY=0, targetZ=0,         //target values for PID
        integralY=1, integralX=1, integralZ=1, //integral values for PID
        prevZ=1, prevY=1, prevX=1;             //previous values, to determine delta 
 
@@ -54,7 +55,8 @@ int PDD = 300;                        //Modifier of total effectiveness of PID. 
 TaskHandle_t rotors;
 TaskHandle_t data;
 
-
+bool mayday=0;
+String FullData [25];
 String msgToSend="";bool send=0;
 String datata="", datata2;
 int pp=0, n=0, sigStr;
@@ -78,20 +80,18 @@ float corr[] = {CFR, CFL, CBR, CBL};
 unsigned long t1, t2;
 
 
-String splitDat(String msg, char delim, int theOne){  //returns specified part of message, that was separated by delimitors :P
-  String ret=""; 
+void splitDat(String msg, char delim){  //returns specified part of message, that was separated by delimitors :P
   int counter=0;
-  String list[25];
-  for(int i=0; i<25; i++){list[i]="";}
+  for(int i=0; i<25; i++){FullData[i]="";}
   for(int i=0; i<msg.length(); i++){
     if(msg[i]!=delim){
-      list[counter]+=msg[i];
+      FullData[counter]+=msg[i];
     }
     else{
       counter++;
     }
   }
-  return list[theOne];
+  FullData[24]=String(counter);
 }
 
 String genSum(String s) //generates checksum from given string? 
@@ -155,7 +155,8 @@ String getDat(String d){        //verifies checksum, returns all data without ch
   for(int i=0; i<d.length(); i++){
     if(d[i]==';'){ct++;}
   }
-  String sm=splitDat(d, ';', ct);
+  splitDat(d, ';');
+  String sm=FullData[FullData[24].toInt()];
   for(int i=0; i<d.length(); i++){
     if(d[i]==';'){ct--;}
     if(ct!=0){dd+=d[i];}
@@ -184,22 +185,41 @@ void data_code( void * pvParameters ){
         sigStr=LoRa.packetRssi();
       }
       String returnMsg="";
-
+      
       if(getDat(datata2)!="-1"){    //tests checksum
-        if(datata2[0]=='$'){        //if beggins with '$' -> modifies PID
-          datata="0";
-          Kp=double(splitDat(datata2, ';', 1).toInt())/1000.000;
-          Ki=double(splitDat(datata2, ';', 2).toInt())/1000.000;
-          Kd=double(splitDat(datata2, ';', 3).toInt())/1000.000;
+
+        if(FullData[0]=="MAYDAY MAYDAY MAYDAY"){ //if mayday -> well f*ck :P
+          mayday=1;
+          returnMsg+="RIP";
+        }
+        else if(FullData[0][0]=='$'){        //if '$' -> modifies PID (YAW / PITCH&ROLL)
+          double tKp=double(FullData[1].toInt())/1000.000;
+          double tKi=double(FullData[2].toInt())/1000.000;
+          double tKd=double(FullData[3].toInt())/1000.000;
+          if(FullData[0]=="$YAW"){
+            XKp=tKp; XKi=tKi;  XKd=tKd;
+          }
+          else if(FullData[0]=="$PR"){
+            Kp=tKp; Ki=tKi;  Kd=tKd;
+          }
           returnMsg+="Updated variables, turned the motors off.";
         }
-        else{
-          datata=splitDat(datata2, ';', 0);
-          returnMsg+="Updated motor speed.";
+        else if(FullData[0]=="&"){        //if '&' -> modifies YAW/PITCH/ROLL angles, speed
+          dyaw=FullData[4].toFloat();
+          droll=FullData[3].toFloat();
+          dpitch=FullData[2].toFloat();
+          datata=FullData[1];
+
+          returnMsg+="Updated course, speed.";
+        }
+        else if(FullData[0]=="^"){        //if '^' -> sets hover speed, resets ROLL/PITCH
+          droll=0;
+          dpitch=0;
+          datata=FullData[1];
         }
       }
       else{
-        returnMsg+="Checksum badd, '";
+        returnMsg+="Checksum badd..";
       }
       sendMSG(returnMsg);
     }
@@ -252,20 +272,20 @@ double PIDZ(double err){
   return out;
 }
 
-void interpolX(double &actual, double &target){ //interpolates yaw value because it jumps 360<->0 (degrees)
-  if(360-target+actual<target-actual){
-    actual=180-(360-target+actual);
-    target =180;
-  }
-  else{
-    actual=180-(target-actual);
-    target =180;
-  }
+void interpolX(double &actual, double &target){ //interpolates yaw value cuz it jumps 360<->0 (degrees)
+  int diff=actual-target;
+  target=180;
+  actual=180+diff;
+  if(actual>360){actual-=360;}
 }
 
 void rotors_code( void * pvParameters ){
-  int watchDogKiller=0; //self explainatory
+  int watchDogKiller=0;   //self explainatory
   while(1){
+    if(mayday){   //oopsy daisy
+      for(int i=0; i<4; i++){arr[i].speed(0);}
+      while(1);
+    }
 
     //retrieving gyro data
     bno.getEvent(&orinet, Adafruit_BNO055::VECTOR_EULER);
@@ -295,6 +315,8 @@ void rotors_code( void * pvParameters ){
     
 
     //does the PID things
+    targetY=droll;
+    targetZ=dpitch;
     if(n>MIN_SPEED){
       double piidX=PIDX(errorX);
       double piidY=PIDY(errorY);
