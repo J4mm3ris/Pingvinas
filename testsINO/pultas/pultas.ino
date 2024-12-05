@@ -39,7 +39,7 @@ void setup() {
   Serial.begin(115200);
 
   LoRa.setPins(ss, rst, dio0);
-
+  LoRa.setTxPower (20);
   while (!LoRa.begin(433E6)) {
     Serial.println("MoDuLiS nEpAsIjUnGe");
     delay(500);
@@ -61,32 +61,18 @@ void loop() {
   if (packetSize) {
     while (LoRa.available()) {
       String LoRaData = LoRa.readString();
-      Serial.print("Received: ");
       Serial.println(LoRaData); 
-      String dat = splitDat(LoRaData, ';', 0), sum=splitDat(LoRaData, ';', 1);
-      if(sum==genSum(dat)){
-        Serial.println("Checksum is alright... ");
-      }
-      else{
-        Serial.println("Checksum is nicht gut... ");
-      }
     }
     timeReceived=millis();
-    Serial.print("This message bounced back and forth in ");
-    Serial.print(timeReceived-timeSent);
-    Serial.println(" ms.");
-    Serial.println("");
   }
 
   if (readString.length() > 0) {
     readString.trim();
     String sum = genSum(readString);
-    Serial.println("ShwasdSUM = "+sum);
     readString+=";"+sum;
     LoRa.beginPacket();
     LoRa.print(readString);
     LoRa.endPacket();
-    Serial.println("Message sent");
     readString="";
     timeSent=millis();
   }

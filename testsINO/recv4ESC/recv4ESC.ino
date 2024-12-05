@@ -18,7 +18,7 @@ TODO:
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
+
 
 
 //BNO055 setup
@@ -48,7 +48,7 @@ double targetX=0, targetY=0, targetZ=0,         //target values for PID
        prevZ=1, prevY=1, prevX=1;             //previous values, to determine delta 
 
 double now=1, dt=1, last_time=1;      //current time, delta time, time *last time* - utilised by integral part of PID
-int PDD = 300;                        //Modifier of total effectiveness of PID. Default=300
+int PDD = 5000;                        //Modifier of total effectiveness of PID.
 
 
 //multicore tasks
@@ -106,6 +106,7 @@ String genSum(String s) //generates checksum from given string?
 void setup() {
   Serial.begin(115200);
   LoRa.setPins(ss, rst, dio0);
+  LoRa.setTxPower (20);
 
   //Sets motors up
   pinMode(FRpin, OUTPUT);
@@ -140,7 +141,7 @@ void setup() {
 
 void sendMSG(String msg){       //sends message, automatically appends checksum to the end of it.
   String sum=(genSum(msg));
-  msg+=";"+sum;
+  msg=msg+";"+sum;
   LoRa.beginPacket();
   LoRa.print(msg);
   LoRa.endPacket();
@@ -169,11 +170,6 @@ void data_code( void * pvParameters ){
   int watchDogKiller=0;         //self explainatory
   while(1){
 
-    if(send){                   //sends message, if one is queued up
-      sendMSG(msgToSend);
-      send=0;
-    }
-
     //checks for received messages
     int packetSize = LoRa.parsePacket();
     if (packetSize) {
@@ -184,6 +180,7 @@ void data_code( void * pvParameters ){
         Serial.println(datata2); 
         sigStr=LoRa.packetRssi();
       }
+      Serial.println(sigStr);
       String returnMsg="";
       
       if(getDat(datata2)!="-1"){    //tests checksum
@@ -202,6 +199,7 @@ void data_code( void * pvParameters ){
           else if(FullData[0]=="$PR"){
             Kp=tKp; Ki=tKi;  Kd=tKd;
           }
+
           returnMsg+="Updated variables, turned the motors off.";
         }
         else if(FullData[0]=="&"){        //if '&' -> modifies YAW/PITCH/ROLL angles, speed
@@ -216,6 +214,7 @@ void data_code( void * pvParameters ){
           droll=0;
           dpitch=0;
           datata=FullData[1];
+          returnMsg+="Set hover speed";
         }
       }
       else{
