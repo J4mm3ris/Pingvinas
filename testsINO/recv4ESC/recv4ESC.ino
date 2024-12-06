@@ -6,6 +6,9 @@ TODO:
   LOST CAUSE 4.find joy in life;
 */
 
+//needed for voltage measurment
+#include <driver/adc.h>
+
 //needed for motors
 #include <ESP32Servo.h>
 #include <ESC.h>
@@ -48,8 +51,9 @@ double targetX=0, targetY=0, targetZ=0,         //target values for PID
        prevZ=1, prevY=1, prevX=1;             //previous values, to determine delta 
 
 double now=1, dt=1, last_time=1;      //current time, delta time, time *last time* - utilised by integral part of PID
-int PDD = 5000;                        //Modifier of total effectiveness of PID.
+float PDD = 5000;                        //Modifier of total effectiveness of PID.
 
+float Vcc, vref;
 
 //multicore tasks
 TaskHandle_t rotors;
@@ -60,6 +64,7 @@ String FullData [25];
 String msgToSend="";bool send=0;
 String datata="", datata2;
 int pp=0, n=0, sigStr;
+int packetSize
 
 //gyro sensor
 sensors_event_t orinet;
@@ -76,8 +81,9 @@ float dpitch = 0, dyaw = 0, droll=0;  //desired (target) angles
 
 ESC arr[]= {FRP, FLP, BRP, BLP};
 float corr[] = {CFR, CFL, CBR, CBL};
+int mot[]={0,0,0,0};
 
-unsigned long t1, t2;
+unsigned long tMsg, tMsgLast;
 
 
 void splitDat(String msg, char delim){  //returns specified part of message, that was separated by delimitors :P
@@ -105,6 +111,10 @@ String genSum(String s) //generates checksum from given string?
 
 void setup() {
   Serial.begin(115200);
+  tMsg=millis();
+  tMsgLast=millis();
+  adc1_config_width(ADC_WIDTH_BIT_12);
+  adc1_config_channel_atten(ADC1_CHANNEL_0,ADC_ATTEN_DB_11);
   LoRa.setPins(ss, rst, dio0);
   LoRa.setTxPower (20);
 
@@ -135,8 +145,9 @@ void setup() {
   targetX=x; //sets target yaw to current yaw;
 
   //begins tasks on multiple cores :P
-  xTaskCreatePinnedToCore(rotors_code, "rotors", 9000, NULL, 1, &rotors, 0);        
-  xTaskCreatePinnedToCore(data_code, "data", 4000, NULL, 1, &data, 1);        
+  xTaskCreatePinnedToCore(rotors_code, "rotors", 15000, NULL, 1, &rotors, 0);
+  xTaskCreatePinnedToCore(data_code, "data", 15000, NULL, 1, &data, 1);
+  
 }
 
 void sendMSG(String msg){       //sends message, automatically appends checksum to the end of it.
@@ -169,11 +180,12 @@ String getDat(String d){        //verifies checksum, returns all data without ch
 void data_code( void * pvParameters ){
   int watchDogKiller=0;         //self explainatory
   while(1){
-
+    
     //checks for received messages
-    int packetSize = LoRa.parsePacket();
+    packetSize = LoRa.parsePacket();
     if (packetSize) {
-
+      tMsgLast=tMsg;
+      tMsg=millis();
       //reads data
       while (LoRa.available()) {
         datata2 = LoRa.readString();
@@ -184,10 +196,29 @@ void data_code( void * pvParameters ){
       String returnMsg="";
       
       if(getDat(datata2)!="-1"){    //tests checksum
+        vref = adc1_get_raw(ADC1_CHANNEL_0);
+        Vcc=vref*(3.3651/4096)*11;
 
         if(FullData[0]=="MAYDAY MAYDAY MAYDAY"){ //if mayday -> well f*ck :P
           mayday=1;
           returnMsg+="RIP";
+        }
+        else if(FullData[0]=="%D"){
+          
+          returnMsg+="6969;";//message id
+          returnMsg+=String(tMsg-tMsgLast);
+          returnMsg+=";";
+          returnMsg+=String(sigStr);
+          returnMsg+="1;";
+          returnMsg+=String(z);
+          returnMsg+=";";
+          returnMsg+=String(y);
+          returnMsg+=";";
+          for(int i=0; i<4; i++){
+            returnMsg+=String(mot[i]);
+            returnMsg+=";";}
+          returnMsg+="1234;1234;";//long, lat
+          returnMsg+="15";//humidity
         }
         else if(FullData[0][0]=='$'){        //if '$' -> modifies PID (YAW / PITCH&ROLL)
           double tKp=double(FullData[1].toInt())/1000.000;
@@ -222,23 +253,8 @@ void data_code( void * pvParameters ){
       }
       sendMSG(returnMsg);
     }
-    delay(1); //time to reset watchdogg
-  }
-}
-
-void updateSpeed(){ //updates motor speed
-  if(n>=0){
-    for(int i=0; i<4; i++){
-      if(n<MIN_SPEED){
-        arr[i].speed(n);
-      }
-      else if(n*corr[i]<MAX_SPEED){
-        arr[i].speed(n*corr[i]);
-      }
-      else{
-        arr[i].speed(MAX_SPEED);
-      }
-    }
+    
+    delayMicroseconds(1); //time to reset watchdogg
   }
 }
 
@@ -337,10 +353,12 @@ void rotors_code( void * pvParameters ){
       corr[0]+=piidZ/PDD; corr[1]+=piidZ/PDD; corr[2]-=piidZ/PDD; corr[3]-=piidZ/PDD;
 
 
-      for(int i=0; i<4; i++){
-        corr[i]/=1;
-        if(corr[i]<0){corr[i]=0;}   //makes sure that corr coefficients are positive
-      }
+
+    }
+    for(int i=0; i<4; i++){
+      corr[i]/=1;
+      if(corr[i]<0){corr[i]=0;}   //makes sure that corr coefficients are positive
+      mot[i]=n*corr[i];
     }
 
     //!updates individual motor speeds ONLY if they are supposed to be moving!!!!!!!!
@@ -381,6 +399,6 @@ void rotors_code( void * pvParameters ){
           }
         }
     }
-    delay(1); //time to reset watchdogg
+    delayMicroseconds(1); //time to reset watchdogg
   }
 }

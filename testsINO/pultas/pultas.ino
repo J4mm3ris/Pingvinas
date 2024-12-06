@@ -8,7 +8,7 @@
 int n;
 String readString="";
 unsigned long timeReceived, timeSent;
-
+String LoRaData;
 
 String splitDat(String msg, char delim, int theOne){  //returns specified part of message, that was separated by delimitors :P
   String ret=""; 
@@ -50,20 +50,20 @@ void setup() {
 }
 
 void loop() {
-
+  LoRaData="";
   while (Serial.available()) {
     char c = Serial.read(); 
     readString += c;
-    delay(2);
   }
 
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
     while (LoRa.available()) {
-      String LoRaData = LoRa.readString();
-      Serial.println(LoRaData); 
+      LoRaData = LoRa.readString();
+       
     }
     timeReceived=millis();
+    Serial.println(LoRaData+"  back/forth:"+String(timeReceived-timeSent)+"ms. ");
   }
 
   if (readString.length() > 0) {

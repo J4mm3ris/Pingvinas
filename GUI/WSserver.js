@@ -7,6 +7,12 @@ const wss = new WebSocket.Server({ port: 8080 });
 
 wss.on('connection', (ws) => {
 
+  console.log("connected");
+
+  ws.on('close', () => {
+    console.log(`baba blem`);
+
+  });
   ws.on('message', (message) => {
     console.log(`Received from React: ${message}`);
     sendToArduino(message);
