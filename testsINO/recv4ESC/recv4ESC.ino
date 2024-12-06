@@ -64,7 +64,7 @@ String FullData [25];
 String msgToSend="";bool send=0;
 String datata="", datata2;
 int pp=0, n=0, sigStr;
-int packetSize
+int packetSize;
 
 //gyro sensor
 sensors_event_t orinet;
