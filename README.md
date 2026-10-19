@@ -5,6 +5,35 @@
 
 It might fly, *it might not.*
 
+
+## A drone created from scratch
+
+### Drone electronics:
+- ESP 32 microcontroller
+- RA-02 LoRa RF transceiver module
+- BNO055 Absolute orientation sensor
+- 4x 30A Electrical speed controllers
+- 4x 2755KV Brushless motors
+- 6x 2500mAh Li-ion cells
+- 6S 50A battery management system 
+
+### Transmitter electronics:
+- ESP 32 microcontroller
+- RA-02 LoRa RF transceiver module
+
+### Other materials
+- PET-G plastic for 3d printing
+- Perfboards
+- Wires
+- Screws
+- Connectors
+- Zip ties
+- etc..
+
+## Frame design process
+
+![GIF](https://github.com/J4mm3ris/Pingvinas/blob/main/graphics/dezigningProzces.gif)
+
 ## Serial Commands
 
 ### Remote
@@ -24,9 +53,6 @@ It might fly, *it might not.*
 
 >- **`#D{1/0}`** - enable / disable debug messages;
 
-## Design process
-
-![GIF](https://github.com/J4mm3ris/Pingvinas/blob/main/graphics/dezigningProzces.gif)
 
 ## Dependencies 
 
